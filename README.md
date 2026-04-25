@@ -41,7 +41,7 @@ All PF2e-specific implementation — the parser, data mapping, enricher integrat
 1. In Foundry, go to **Configuration → Add-on Modules → Install Module**
 2. Paste the manifest URL into the **Manifest URL** field at the bottom:
    ```
-   https://raw.githubusercontent.com/YOUR_USERNAME/pf2e-bestiary-import/main/module.json
+   https://raw.githubusercontent.com/srpthemangoeater/pf2e-bestiary-import/main/module.json
    ```
    *(Replace with your actual hosted `module.json` URL — GitHub raw, your own server, etc.)*
 3. Click **Install**
