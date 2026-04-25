@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --input-type=module)",
+      "Bash(node --check /c/Users/Mario/AppData/Local/FoundryVTT/Data/modules/pf2e-bestiary-import/scripts/actor-builder.js)",
+      "Bash(node --check /c/Users/Mario/AppData/Local/FoundryVTT/Data/modules/pf2e-bestiary-import/scripts/dialog.js)",
+      "Bash(node --check /c/Users/Mario/AppData/Local/FoundryVTT/Data/modules/pf2e-bestiary-import/scripts/module.js)"
+    ]
+  }
+}

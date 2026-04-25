@@ -1,0 +1,293 @@
+/* ── Root tokens ──────────────────────────────────────────────────────── */
+.pf2e-statblock-import {
+  --psbi-bg:          #1a1a1f;
+  --psbi-bg-panel:    #111115;
+  --psbi-bg-header:   #0d0d10;
+  --psbi-border:      #2e2e3a;
+  --psbi-text:        #d4d4d8;
+  --psbi-muted:       #52525b;
+  --psbi-hint:        #3f3f50;
+
+  --psbi-name:        #fbbf24;
+  --psbi-creature:    #a1a1aa;
+  --psbi-traits:      #a78bfa;
+  --psbi-perception:  #34d399;
+  --psbi-languages:   #60a5fa;
+  --psbi-skills:      #fcd34d;
+  --psbi-abilities:   #fb923c;
+  --psbi-items:       #94a3b8;
+  --psbi-defenses:    #f87171;
+  --psbi-hp:          #4ade80;
+  --psbi-speed:       #2dd4bf;
+  --psbi-action:      #c084fc;
+  --psbi-strike:      #f97316;
+  --psbi-spells:      #818cf8;
+  --psbi-spell-level: #6366f1;
+  --psbi-error:       #ef4444;
+}
+
+/* ── Dialog window overrides ─────────────────────────────────────────── */
+#pf2e-statblock-import .window-content {
+  background: var(--psbi-bg);
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── Outer wrapper ───────────────────────────────────────────────────── */
+.psbi-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--psbi-bg);
+  color: var(--psbi-text);
+  font-family: "Consolas", "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+/* ── Split panels ────────────────────────────────────────────────────── */
+.psbi-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  border-bottom: 1px solid var(--psbi-border);
+}
+
+.psbi-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.psbi-panel-left {
+  border-right: 1px solid var(--psbi-border);
+}
+
+/* ── Panel headers ───────────────────────────────────────────────────── */
+.psbi-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--psbi-bg-header);
+  border-bottom: 1px solid var(--psbi-border);
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+
+.psbi-panel-title {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: var(--psbi-muted);
+  text-transform: uppercase;
+}
+
+.psbi-panel-hint {
+  font-size: 10px;
+  color: var(--psbi-hint);
+}
+
+.psbi-field-count {
+  font-size: 10px;
+  color: var(--psbi-muted);
+}
+
+/* ── Left: raw textarea ──────────────────────────────────────────────── */
+#psbi-statblock {
+  flex: 1;
+  background: var(--psbi-bg-panel);
+  color: #b4b4c0;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+#psbi-statblock::placeholder { color: var(--psbi-hint); }
+
+/* ── Right: preview scroll area ─────────────────────────────────────── */
+.psbi-preview {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--psbi-bg-panel);
+}
+
+/* scrollbar */
+.psbi-preview::-webkit-scrollbar { width: 6px; }
+.psbi-preview::-webkit-scrollbar-track { background: transparent; }
+.psbi-preview::-webkit-scrollbar-thumb { background: var(--psbi-border); border-radius: 3px; }
+
+/* ── Preview rows ────────────────────────────────────────────────────── */
+.psbi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  border-left: 3px solid transparent;
+  line-height: 1.5;
+}
+
+.psbi-row:hover { background: rgba(255,255,255,0.03); }
+
+.psbi-row-text {
+  flex: 1;
+  word-break: break-word;
+  color: var(--psbi-text);
+}
+
+.psbi-row-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+  white-space: nowrap;
+  align-self: flex-start;
+  padding-top: 2px;
+}
+
+/* ── Per-type colours (left border + text accent) ────────────────────── */
+.psbi-row-name        { border-color: var(--psbi-name);       }
+.psbi-row-name        .psbi-row-text { color: var(--psbi-name); font-weight: bold; font-size: 13px; }
+
+.psbi-row-creature    { border-color: var(--psbi-creature);   }
+.psbi-row-creature    .psbi-row-text { color: var(--psbi-creature); }
+
+.psbi-row-traits      { border-color: var(--psbi-traits);     }
+.psbi-row-traits      .psbi-row-text { color: var(--psbi-traits); }
+.psbi-row-traits      .psbi-row-label { color: var(--psbi-traits); opacity: 0.7; }
+
+.psbi-row-perception  { border-color: var(--psbi-perception); }
+.psbi-row-perception  .psbi-row-text { color: var(--psbi-perception); }
+
+.psbi-row-languages   { border-color: var(--psbi-languages);  }
+.psbi-row-languages   .psbi-row-text { color: var(--psbi-languages); }
+
+.psbi-row-skills      { border-color: var(--psbi-skills);     }
+.psbi-row-skills      .psbi-row-text { color: var(--psbi-skills); }
+
+.psbi-row-abilities   { border-color: var(--psbi-abilities);  }
+.psbi-row-abilities   .psbi-row-text { color: var(--psbi-abilities); }
+
+.psbi-row-items       { border-color: var(--psbi-items);      }
+.psbi-row-items       .psbi-row-text { color: var(--psbi-items); }
+
+.psbi-row-defenses    { border-color: var(--psbi-defenses);   }
+.psbi-row-defenses    .psbi-row-text { color: var(--psbi-defenses); }
+.psbi-row-defenses    .psbi-row-label { color: var(--psbi-defenses); opacity: 0.7; }
+
+.psbi-row-hp          { border-color: var(--psbi-hp);         }
+.psbi-row-hp          .psbi-row-text { color: var(--psbi-hp); }
+
+.psbi-row-speed       { border-color: var(--psbi-speed);      }
+.psbi-row-speed       .psbi-row-text { color: var(--psbi-speed); }
+
+.psbi-row-action      { border-color: var(--psbi-action);     }
+.psbi-row-action      .psbi-row-text { color: var(--psbi-text); }
+.psbi-row-action      .psbi-row-label { color: var(--psbi-action); opacity: 0.8; }
+
+.psbi-row-strike      { border-color: var(--psbi-strike);     }
+.psbi-row-strike      .psbi-row-text { color: var(--psbi-text); }
+.psbi-row-strike      .psbi-row-label { color: var(--psbi-strike); opacity: 0.8; }
+
+.psbi-row-spells      { border-color: var(--psbi-spells);     }
+.psbi-row-spells      .psbi-row-text { color: var(--psbi-spells); font-weight: bold; }
+.psbi-row-spells      .psbi-row-label { color: var(--psbi-spells); opacity: 0.8; }
+
+.psbi-row-spell-level { border-color: transparent; padding-left: 22px; }
+.psbi-row-spell-level .psbi-row-text { color: #7c7caa; }
+.psbi-row-spell-level .psbi-row-label { color: var(--psbi-spell-level); opacity: 0.6; }
+
+.psbi-row-error       { border-color: var(--psbi-error); }
+.psbi-row-error       .psbi-row-text { color: var(--psbi-error); }
+
+/* ── Footer: folder selector + buttons ──────────────────────────────── */
+.psbi-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--psbi-bg-header);
+  border-bottom: 1px solid var(--psbi-border);
+  flex-shrink: 0;
+}
+
+.psbi-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.psbi-folder-row label {
+  font-size: 11px;
+  color: var(--psbi-muted);
+  white-space: nowrap;
+}
+
+.psbi-folder-row select {
+  flex: 1;
+  background: #18181f;
+  color: var(--psbi-text);
+  border: 1px solid var(--psbi-border);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+.psbi-btn-row {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.psbi-btn-row button {
+  padding: 4px 14px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--psbi-border);
+  background: #24242e;
+  color: var(--psbi-text);
+  white-space: nowrap;
+}
+
+.psbi-btn-row button:hover { background: #2e2e3e; }
+
+#psbi-import-btn {
+  background: #1e3a5f;
+  border-color: #2d5f9e;
+  color: #93c5fd;
+}
+#psbi-import-btn:hover { background: #254a78; }
+#psbi-import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Log ────────────────────────────────────────────────────────────── */
+.psbi-log {
+  background: #0d0d10;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 5px 10px;
+  max-height: 80px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+.psbi-log p { margin: 1px 0; }
+.psbi-log ul { margin: 2px 0 2px 14px; padding: 0; }
+.psbi-log li { margin: 1px 0; }
+.psbi-log-ok { color: var(--psbi-hp) !important; }
+.psbi-error  { color: var(--psbi-error) !important; }
+
+/* ── Sidebar button ──────────────────────────────────────────────────── */
+.psbi-sidebar-btn {
+  width: 100%;
+  margin-top: 4px;
+}

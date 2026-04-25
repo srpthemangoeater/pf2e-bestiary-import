@@ -1,0 +1,45 @@
+<div class="psbi-dialog">
+
+  <div class="psbi-split">
+
+    <div class="psbi-panel psbi-panel-left">
+      <div class="psbi-panel-header">
+        <span class="psbi-panel-title">RAW STATBLOCK TEXT</span>
+        <span class="psbi-panel-hint">paste &amp; edit</span>
+      </div>
+      <textarea id="psbi-statblock" spellcheck="false" placeholder="Paste your PF2e statblock here..."></textarea>
+    </div>
+
+    <div class="psbi-panel psbi-panel-right">
+      <div class="psbi-panel-header">
+        <span class="psbi-panel-title">PARSE PREVIEW</span>
+        <span id="psbi-field-count" class="psbi-field-count">—</span>
+      </div>
+      <div id="psbi-preview" class="psbi-preview"></div>
+    </div>
+
+  </div>
+
+  <div class="psbi-footer">
+    <div class="psbi-folder-row">
+      <label for="psbi-folder">Folder</label>
+      <select id="psbi-folder">
+        <option value="">(Root)</option>
+        {{#each folders}}
+          <option value="{{id}}">{{name}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="psbi-btn-row">
+      <button id="psbi-import-btn" type="button">
+        <i class="fas fa-file-import"></i> Import
+      </button>
+      <button id="psbi-clear-btn" type="button">
+        <i class="fas fa-times"></i> Clear
+      </button>
+    </div>
+  </div>
+
+  <div id="psbi-log" class="psbi-log"></div>
+
+</div>

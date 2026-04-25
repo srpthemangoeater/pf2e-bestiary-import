@@ -1,0 +1,38 @@
+{
+  "id": "pf2e-bestiary-import",
+  "title": "PF2e Bestiary Import",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "srp.mango",
+      "url": "https://github.com/srpthemangoeater",
+      "discord": "srprottenmango",
+      "flags": {}
+    }
+  ],
+  "description": "<p>Import PF2e NPCs from statblock text, with compendium spell lookup and PF2e enricher support.</p>",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "flags": {
+    "canUpload": true
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf2e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/module.js"
+  ],
+  "styles": [
+    {
+      "src": "styles/module.css"
+    }
+  ]
+}
