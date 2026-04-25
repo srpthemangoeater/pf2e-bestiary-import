@@ -36,8 +36,28 @@ All PF2e-specific implementation — the parser, data mapping, enricher integrat
 
 ## Installation
 
-1. Copy the `pf2e-bestiary-import` folder into your FoundryVTT `Data/modules/` directory
-2. Launch Foundry → **Settings → Manage Modules** → enable **PF2e Bestiary Import**
+### Method 1 — Manifest URL (recommended)
+
+1. In Foundry, go to **Configuration → Add-on Modules → Install Module**
+2. Paste the manifest URL into the **Manifest URL** field at the bottom:
+   ```
+   https://raw.githubusercontent.com/YOUR_USERNAME/pf2e-bestiary-import/main/module.json
+   ```
+   *(Replace with your actual hosted `module.json` URL — GitHub raw, your own server, etc.)*
+3. Click **Install**
+4. Enable the module in **Settings → Manage Modules**
+
+### Method 2 — Manual (local file)
+
+1. Download or copy the `pf2e-bestiary-import` folder into:
+   ```
+   %localappdata%\FoundryVTT\Data\modules\
+   ```
+   Full path on Windows:
+   ```
+   C:\Users\[username]\AppData\Local\FoundryVTT\Data\modules\pf2e-bestiary-import\
+   ```
+2. In Foundry, go to **Settings → Manage Modules** → enable **PF2e Bestiary Import**
 3. Reload your world
 
 > Requires FoundryVTT **v13+** and the **PF2e system**.
