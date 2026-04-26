@@ -253,13 +253,22 @@ function applyRunes(data, { potency, striking, resilient }) {
   const sys = data.system;
   if (!sys) return;
 
-  if (potency && sys.potencyRune !== undefined) {
+  // Only apply runes if the item has the property AND the value is truthy
+  if (potency && sys.potencyRune?.value !== undefined) {
     sys.potencyRune.value = potency;
   }
-  if (striking && sys.strikingRune !== undefined) {
+  if (striking && sys.strikingRune?.value !== undefined) {
     sys.strikingRune.value = striking;
   }
-  if (resilient && sys.resiliencyRune !== undefined) {
+  if (resilient && sys.resiliencyRune?.value !== undefined) {
     sys.resiliencyRune.value = resilient;
+  }
+
+  // Ensure traits always have otherTags to prevent ListFormat crash
+  if (sys.traits && !Array.isArray(sys.traits.otherTags)) {
+    sys.traits.otherTags = [];
+  }
+  if (sys.traits?.value && !Array.isArray(sys.traits.value)) {
+    sys.traits.value = [];
   }
 }

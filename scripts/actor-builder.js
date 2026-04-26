@@ -163,7 +163,7 @@ function buildMeleeItem(strike, conditionMap = new Map()) {
     system: {
       bonus: { value: strike.bonus },
       damageRolls,
-      traits: { value: strike.traits },
+      traits: { value: strike.traits.filter(t => typeof t === "string"), rarity: "common", otherTags: [] },
       weaponType: { value: strike.weaponType },
       description: { value: description },
     },
@@ -183,7 +183,7 @@ function buildActionItem(action, conditionMap = new Map()) {
     system: {
       actionType: { value: actionTypeMap[action.actionType] ?? "action" },
       actions: { value: action.actions },
-      traits: { value: action.traits },
+      traits: { value: action.traits.filter(t => typeof t === "string"), rarity: "common", otherTags: [] },
       description: { value: `<p>${enrichedDesc}</p>` },
     },
   };
@@ -248,38 +248,29 @@ async function buildEquipmentItems(itemList, issues) {
     } else {
       // Homebrew / not found → create placeholder equipment
       issues.push(`Equipment not found in compendium: "${item.name}"`);
-      results.push(buildFallbackEquipmentItem(item, parsed));
+      results.push(buildFallbackEquipmentItem(item));
     }
   }
   return results;
 }
 
-function buildFallbackEquipmentItem(item, parsed) {
-  // Guess type from name patterns
-  const name = item.name.toLowerCase();
-  const isArmor  = /\b(armor|mail|plate|leather|chain|breastplate|hide|shield)\b/.test(name);
-  const isWeapon = /\b(sword|axe|bow|staff|dagger|spear|club|flail|hammer|crossbow|wand)\b/.test(name);
-  const type = isArmor ? "armor" : isWeapon ? "weapon" : "equipment";
-
+function buildFallbackEquipmentItem(item) {
+  // Always use "equipment" type for homebrew/unfound items.
+  // Creating weapon/armor without their full required schema (damage, category,
+  // group, hands, etc.) causes the PF2e sheet renderer to crash.
   const desc = item.description
     ? `<p>${item.description}</p>`
     : "<p><em>Homebrew item — not found in compendium.</em></p>";
 
   return {
-    type,
+    type: "equipment",
     name: item.name,
     system: {
       description: { value: desc },
       quantity: 1,
-      traits: { value: [], rarity: "common" },
-      ...(type === "weapon" && parsed.potency ? {
-        potencyRune: { value: parsed.potency },
-        strikingRune: { value: parsed.striking },
-      } : {}),
-      ...(type === "armor" && parsed.potency ? {
-        potencyRune: { value: parsed.potency },
-        resiliencyRune: { value: parsed.resilient },
-      } : {}),
+      weight: { value: "L" },
+      equipped: { carryType: "worn", inSlot: false, invested: null },
+      traits: { value: [], rarity: "common", otherTags: [] },
     },
   };
 }
@@ -297,7 +288,7 @@ function buildFallbackSpellItem(spell, entryId, tradition) {
         uses: spell.atWill ? { value: -1, max: -1 } : { value: spell.uses, max: spell.uses },
       },
       description: { value: "<p><em>Not found in compendium. Please replace with the correct spell.</em></p>" },
-      traits: { value: [], rarity: "common" },
+      traits: { value: [], rarity: "common", otherTags: [] },
     },
   };
 }
