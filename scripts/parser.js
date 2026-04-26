@@ -513,25 +513,64 @@ const CONDITION_PATTERN = new RegExp(
   "gi"
 );
 
+// Damage type words we recognise for enrichment (bare-form, no "damage" word).
+const DAMAGE_TYPE_WORDS = [
+  "piercing", "slashing", "bludgeoning",
+  "fire", "cold", "electricity", "acid", "sonic", "force",
+  "poison", "mental", "bleed", "spirit", "vitality", "void",
+  "positive", "negative", "chaotic", "evil", "good", "lawful",
+  "untyped",
+].join("|");
+
+// Skill/save check names used in "Escape DC 31", "Athletics DC 25", etc.
+const CHECK_TYPE_WORDS = [
+  "athletics", "acrobatics", "arcana", "crafting", "deception",
+  "diplomacy", "intimidation", "medicine", "nature", "occultism",
+  "performance", "religion", "society", "stealth", "survival", "thievery",
+  "perception", "fortitude", "reflex", "will", "escape",
+].join("|");
+
 export function enrichDescription(text) {
+  // Protect already-enriched spans so subsequent regexes don't re-match inside them.
+  const protect = [];
+  text = text.replace(/@(?:Damage|Check|UUID)\[[^\]]+\](?:\{[^}]*\})?/g, (m) => {
+    const i = protect.length;
+    protect.push(m);
+    return `__ENRICHED_${i}__`;
+  });
+
   // DC X [Save] save → @Check enricher
   text = text.replace(/DC\s+(\d+)\s+(Fortitude|Reflex|Will)\s+save/gi, (match, dc, save) =>
-    `@Check[type:${save.toLowerCase()}|dc:${dc}]{${match}}`
+    `@Check[type:${save.toLowerCase()}|dc:${dc}]{${save} save}`
+  );
+
+  // "<Skill/Save> DC X" → @Check (e.g. "Escape DC 31", "Athletics DC 25")
+  text = text.replace(
+    new RegExp(`\\b(${CHECK_TYPE_WORDS})\\s+DC\\s+(\\d+)`, "gi"),
+    (match, type, dc) => {
+      const slug = type.toLowerCase();
+      const label = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+      return `@Check[type:${slug}|dc:${dc}]{${label}}`;
+    }
   );
 
   // "Xd persistent [type] damage" → @Damage with persistent tag
-  text = text.replace(/(\d+d\d+(?:[+-]\d+)?)\s+persistent\s+(\w+)\s+damage/gi, (match, dice, type) =>
-    `@Damage[${dice}[persistent,${mapDamageType(type)}]]{${match}}`
+  text = text.replace(/(\d+d\d+(?:[+-]\d+)?)\s+persistent\s+(\w+)(?:\s+damage)?/gi, (match, dice, type) =>
+    `@Damage[${dice}[persistent,${mapDamageType(type.toLowerCase())}]]{${match}}`
   );
 
-  // Standard damage "Xd Y+Z type damage" → @Damage  (skip already-enriched spans)
-  text = text.replace(/(\d+d\d+(?:[+-]\d+)?)\s+([\w]+)\s+damage/gi, (match, dice, type) => {
-    if (text.includes(`@Damage`) && match.startsWith("@")) return match;
-    return `@Damage[${dice}[${mapDamageType(type)}]]{${match}}`;
-  });
+  // Standard damage "Xd Y+Z type [damage]" — "damage" word is optional
+  text = text.replace(
+    new RegExp(`(\\d+d\\d+(?:[+-]\\d+)?)\\s+(${DAMAGE_TYPE_WORDS})(\\s+damage)?\\b`, "gi"),
+    (match, dice, type) =>
+      `@Damage[${dice}[${mapDamageType(type.toLowerCase())}]]{${match.trim()}}`
+  );
 
   // Conditions → placeholder tag; actor-builder replaces these with real @UUID links
   text = text.replace(CONDITION_PATTERN, (match) => `[[CONDITION:${match.trim()}]]`);
+
+  // Restore protected spans
+  text = text.replace(/__ENRICHED_(\d+)__/g, (_, i) => protect[Number(i)]);
 
   return text;
 }

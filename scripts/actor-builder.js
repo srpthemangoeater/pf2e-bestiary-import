@@ -3,6 +3,198 @@
 import { findSpellInCompendium, buildConditionUUIDMap, findEquipmentInCompendium } from "./compendium-lookup.js";
 import { enrichDescription, slugify, parseMagicalItemName } from "./parser.js";
 
+// ── Trait sanitisation ─────────────────────────────────────────────────────
+
+// Magic-school traits removed in PF2e Remaster — invalid for all item types.
+const SCHOOL_TRAITS = new Set([
+  "abjuration", "conjuration", "divination", "enchantment",
+  "evocation", "illusion", "necromancy", "transmutation",
+]);
+
+// Legacy damage / IWR types → Remaster equivalents.
+const LEGACY_DAMAGE_TYPE_MAP = {
+  "negative": "void",
+  "positive": "vitality",
+  "chaotic":  "spirit",
+  "lawful":   "spirit",
+  "good":     "spirit",
+  "evil":     "spirit",
+};
+
+function remasterDamageType(slug) {
+  if (typeof slug !== "string") return slug;
+  const key = slug.toLowerCase();
+  return LEGACY_DAMAGE_TYPE_MAP[key] ?? key;
+}
+
+/**
+ * Returns slug only if PF2e knows it as a damage type or category. If unknown,
+ * returns "untyped" so the label getter never sees an undefined slug.
+ */
+function safeDamageType(slug) {
+  const remastered = remasterDamageType(slug);
+  const pf2e = CONFIG?.PF2E ?? {};
+  if (
+    (pf2e.damageTypes && remastered in pf2e.damageTypes) ||
+    (pf2e.damageCategories && remastered in pf2e.damageCategories)
+  ) return remastered;
+  return "untyped";
+}
+
+/**
+ * Check a slug against PF2e's own CONFIG dictionaries.
+ * Returns true only when PF2e actually knows about this trait slug,
+ * so #createLabel / ListFormat.format never receives undefined.
+ */
+function isKnownPF2eTrait(slug, ...configKeys) {
+  const pf2e = CONFIG?.PF2E ?? {};
+  // Check specific keys first (fast path)
+  for (const key of configKeys) {
+    if (pf2e[key] && slug in pf2e[key]) return true;
+  }
+  // Fallback: scan all PF2e trait dictionaries
+  for (const val of Object.values(pf2e)) {
+    if (val && typeof val === "object" && !Array.isArray(val) && slug in val) return true;
+  }
+  return false;
+}
+
+/**
+ * Sanitise traits for an **action / ability** item.
+ * Filters to slugs PF2e recognises as valid action/feat traits.
+ */
+function sanitiseActionTraits(traits) {
+  return traits.filter(t => {
+    if (typeof t !== "string" || t.length === 0) return false;
+    if (SCHOOL_TRAITS.has(t)) return false;
+    return isKnownPF2eTrait(t, "actionTraits", "featTraits");
+  });
+}
+
+/**
+ * Sanitise traits for a **melee / ranged** strike item.
+ * Normalises reach/range text slugs and filters to known weapon traits.
+ */
+function sanitiseStrikeTraits(traits) {
+  return traits
+    .filter(t => typeof t === "string" && t.length > 0)
+    .map(t => {
+      if (/^reach/.test(t)) return "reach";        // "reach-10-feet" → "reach"
+      if (/^range/.test(t)) return null;            // range-increment-X not a trait slug
+      return t;
+    })
+    .filter(slug => slug && isKnownPF2eTrait(slug, "weaponTraits", "npcAttackTraits"));
+}
+
+/**
+ * Sanitise traits for an **NPC actor** (creature traits only).
+ * Class names like "Witch" are NOT valid creature trait slugs.
+ */
+function sanitiseCreatureTraits(traits) {
+  return traits.filter(t => {
+    if (typeof t !== "string" || t.length === 0) return false;
+    return isKnownPF2eTrait(t, "creatureTraits", "monsterTraits");
+  });
+}
+
+/**
+ * Generic CONFIG dictionary check for non-trait fields (IWR / senses / languages).
+ * Returns true only when PF2e knows the slug — anything else would yield
+ * `undefined` from #createLabel and crash ListFormat.format().
+ */
+function isKnownInDict(slug, ...configKeys) {
+  const pf2e = CONFIG?.PF2E ?? {};
+  for (const key of configKeys) {
+    const dict = pf2e[key];
+    if (!dict) continue;
+    if (dict instanceof Map) {
+      if (dict.has(slug)) return true;
+    } else if (typeof dict === "object" && slug in dict) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function sanitiseImmunities(list) {
+  return list
+    .map(i => ({ ...i, type: remasterDamageType(i?.type) }))
+    .filter(i =>
+      typeof i.type === "string" &&
+      isKnownInDict(i.type, "immunityTypes", "damageTypes", "damageCategories")
+    );
+}
+
+function sanitiseWeaknesses(list) {
+  return list
+    .map(w => ({ ...w, type: remasterDamageType(w?.type) }))
+    .filter(w =>
+      typeof w.type === "string" &&
+      isKnownInDict(w.type, "weaknessTypes", "damageTypes", "damageCategories")
+    );
+}
+
+function sanitiseResistances(list) {
+  return list
+    .map(r => ({ ...r, type: remasterDamageType(r?.type) }))
+    .filter(r =>
+      typeof r.type === "string" &&
+      isKnownInDict(r.type, "resistanceTypes", "damageTypes", "damageCategories")
+    );
+}
+
+/**
+ * Parse a single sense string like "scent (imprecise) 30 feet" into
+ * `{ type, acuity, range }` if PF2e knows the type slug; otherwise null.
+ */
+function parseSenseEntry(raw) {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  const lower = raw.toLowerCase().trim();
+  // Extract optional acuity in parentheses
+  const acuityMatch = lower.match(/\(([^)]+)\)/);
+  const acuity = acuityMatch ? acuityMatch[1].trim() : null;
+  // Extract optional range in feet
+  const rangeMatch = lower.match(/(\d+)\s*(?:feet|ft\.?)/);
+  const range = rangeMatch ? parseInt(rangeMatch[1]) : null;
+  // Extract head before paren / number
+  const head = lower
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\d+\s*(?:feet|ft\.?)/, "")
+    .trim();
+  const slug = slugify(head);
+  if (!slug) return null;
+  if (!isKnownInDict(slug, "senses", "senseTypes")) return null;
+  const entry = { type: slug };
+  if (acuity && ["precise", "imprecise", "vague"].includes(acuity)) entry.acuity = acuity;
+  if (range && Number.isFinite(range)) entry.range = range;
+  return entry;
+}
+
+function buildPerceptionSenses(senses) {
+  const known = [];
+  const unknown = [];
+  for (const raw of senses) {
+    const parsed = parseSenseEntry(raw);
+    if (parsed) known.push(parsed);
+    else if (typeof raw === "string" && raw.length > 0) unknown.push(raw);
+  }
+  return { senses: known, unknown };
+}
+
+function sanitiseLanguages(langs) {
+  // PF2e accepts arbitrary language slugs but still looks them up for labels;
+  // fall back to "custom" field if dictionary check fails.
+  const known = [];
+  const unknown = [];
+  for (const l of langs) {
+    if (typeof l !== "string" || l.length === 0) continue;
+    const slug = slugify(l);
+    if (isKnownInDict(slug, "languages")) known.push(slug);
+    else unknown.push(l);
+  }
+  return { value: known, customExtra: unknown.join(", ") };
+}
+
 export async function buildActor(data, { folderId = null } = {}) {
   const issues = [];
 
@@ -56,6 +248,13 @@ export async function buildActor(data, { folderId = null } = {}) {
 }
 
 function buildActorData(data) {
+  const langs = sanitiseLanguages(data.languages);
+  const { senses: parsedSenses, unknown: unknownSenses } = buildPerceptionSenses(data.senses);
+  const customParts = [
+    data.languageSpecial,
+    langs.customExtra,
+    unknownSenses.length ? `Senses: ${unknownSenses.join(", ")}` : "",
+  ].filter(Boolean);
   return {
     type: "npc",
     name: data.name,
@@ -67,25 +266,30 @@ function buildActorData(data) {
         privateNotes: "",
       },
       traits: {
-        value: data.traits,
+        value: sanitiseCreatureTraits(data.traits),
         rarity: data.rarity,
         size: { value: data.size },
-        senses: { value: buildSensesString(data.senses) },
         languages: {
-          value: data.languages.map(l => slugify(l)),
-          custom: data.languageSpecial ?? "",
+          value: langs.value,
+          custom: customParts.join("; "),
         },
+      },
+      perception: {
+        mod: data.perception,
+        senses: parsedSenses,
+        details: unknownSenses.length ? unknownSenses.join(", ") : "",
       },
       attributes: {
         hp: { value: data.hp, max: data.hp, details: data.hpNotes },
         ac: { value: data.ac },
-        perception: { value: data.perception },
         speed: buildSpeedObject(data.speeds),
-        immunities: data.immunities.map(i => ({ type: i.type })),
-        weaknesses: data.weaknesses.map(w => ({ type: w.type, value: w.value })),
-        resistances: data.resistances.map(r => ({
+        immunities: sanitiseImmunities(data.immunities).map(i => ({ type: i.type })),
+        weaknesses: sanitiseWeaknesses(data.weaknesses).map(w => ({ type: w.type, value: w.value })),
+        resistances: sanitiseResistances(data.resistances).map(r => ({
           type: r.type, value: r.value,
-          exceptions: r.exceptions ?? []
+          exceptions: (r.exceptions ?? []).filter(e =>
+            isKnownInDict(typeof e === "string" ? e : "", "damageTypes", "damageCategories")
+          ),
         })),
         allSaves: { value: data.saves.saveNotes ?? "" },
       },
@@ -127,6 +331,7 @@ function buildLoreItem(skill) {
     system: {
       mod: { value: skill.mod },
       proficient: { value: 1 },
+      traits: { value: [], rarity: "common", otherTags: [] },
     },
   };
 }
@@ -145,7 +350,7 @@ function buildMeleeItem(strike, conditionMap = new Map()) {
   const damageRolls = {};
   for (const roll of strike.damageRolls) {
     const id = foundry.utils.randomID();
-    const entry = { damage: roll.damage, damageType: roll.damageType };
+    const entry = { damage: roll.damage, damageType: safeDamageType(roll.damageType) };
     if (roll.category) entry.category = roll.category;
     damageRolls[id] = entry;
   }
@@ -163,7 +368,7 @@ function buildMeleeItem(strike, conditionMap = new Map()) {
     system: {
       bonus: { value: strike.bonus },
       damageRolls,
-      traits: { value: strike.traits.filter(t => typeof t === "string"), rarity: "common", otherTags: [] },
+      traits: { value: sanitiseStrikeTraits(strike.traits), rarity: "common", otherTags: [] },
       weaponType: { value: strike.weaponType },
       description: { value: description },
     },
@@ -183,7 +388,7 @@ function buildActionItem(action, conditionMap = new Map()) {
     system: {
       actionType: { value: actionTypeMap[action.actionType] ?? "action" },
       actions: { value: action.actions },
-      traits: { value: action.traits.filter(t => typeof t === "string"), rarity: "common", otherTags: [] },
+      traits: { value: sanitiseActionTraits(action.traits), rarity: "common", otherTags: [] },
       description: { value: `<p>${enrichedDesc}</p>` },
     },
   };
